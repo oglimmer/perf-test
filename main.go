@@ -210,7 +210,7 @@ func memoryAndFilesystemBenchmark(stopChan <-chan struct{}, config Config) {
 	}
 
 	// Allocate memory
-	targetMemory := int64(float64(getAvailableMemory()) * config.memoryPercent)
+	targetMemory := int64(float64(getAvailableMemory(config)) * config.memoryPercent)
 	if config.full {
 		fmt.Printf("Memory: Target allocation: %d MB\n", targetMemory/(1024*1024))
 	}
@@ -247,11 +247,11 @@ func memoryAndFilesystemBenchmark(stopChan <-chan struct{}, config Config) {
 	filesystemBenchmark(memoryChunks, stopChan, config)
 }
 
-func getAvailableMemory() int64 {
+func getAvailableMemory(config Config) int64 {
 	if runtime.GOOS == "linux" {
-		return getLinuxMemory()
+		return getLinuxMemory(config)
 	} else if runtime.GOOS == "darwin" {
-		return getDarwinMemory()
+		return getDarwinMemory(config)
 	}
 
 	fmt.Println("Unsupported OS, using 8GB memory")
@@ -259,7 +259,7 @@ func getAvailableMemory() int64 {
 	return 8 * 1024 * 1024 * 1024 // 8GB default
 }
 
-func getLinuxMemory() int64 {
+func getLinuxMemory(config Config) int64 {
 	// Read /proc/meminfo to get actual available memory
 	data, err := os.ReadFile("/proc/meminfo")
 	if err != nil {
@@ -321,7 +321,7 @@ func getLinuxMemory() int64 {
 	return memAvailable
 }
 
-func getDarwinMemory() int64 {
+func getDarwinMemory(config Config) int64 {
 	// Use vm_stat command to get memory information on macOS
 	cmd := exec.Command("vm_stat")
 	output, err := cmd.Output()
