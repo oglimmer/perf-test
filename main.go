@@ -5,9 +5,11 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
 	"os/signal"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -36,7 +38,7 @@ func formatWithCommas(n float64) string {
 	if len(str) <= 3 {
 		return str
 	}
-	
+
 	result := ""
 	for i, digit := range str {
 		if i > 0 && (len(str)-i)%3 == 0 {
@@ -246,16 +248,143 @@ func memoryAndFilesystemBenchmark(stopChan <-chan struct{}, config Config) {
 }
 
 func getAvailableMemory() int64 {
-	var stat syscall.Statfs_t
-	err := syscall.Statfs(".", &stat)
-	if err != nil {
-		fmt.Printf("Error getting available memory: %v\n", err)
-		return 0
+	if runtime.GOOS == "linux" {
+		return getLinuxMemory()
+	} else if runtime.GOOS == "darwin" {
+		return getDarwinMemory()
 	}
 
-	// This is a simplified approach - in real scenarios you'd want to check actual RAM
-	// For now, we'll use a reasonable default
+	fmt.Println("Unsupported OS, using 8GB memory")
+	// Fallback for other systems
 	return 8 * 1024 * 1024 * 1024 // 8GB default
+}
+
+func getLinuxMemory() int64 {
+	// Read /proc/meminfo to get actual available memory
+	data, err := os.ReadFile("/proc/meminfo")
+	if err != nil {
+		fmt.Println("Error reading /proc/meminfo", err)
+		return 8 * 1024 * 1024 * 1024 // 8GB default
+	}
+
+	lines := strings.Split(string(data), "\n")
+	var memAvailable int64
+
+	for _, line := range lines {
+		if strings.HasPrefix(line, "MemAvailable:") {
+			fields := strings.Fields(line)
+			if len(fields) >= 2 {
+				kb, err := strconv.ParseInt(fields[1], 10, 64)
+				if err == nil {
+					memAvailable = kb * 1024 // Convert KB to bytes
+					break
+				}
+			}
+		}
+	}
+
+	// If MemAvailable is not found or is 0, fall back to MemFree + Buffers + Cached
+	if memAvailable == 0 {
+		var memFree, buffers, cached int64
+
+		for _, line := range lines {
+			fields := strings.Fields(line)
+			if len(fields) >= 2 {
+				kb, err := strconv.ParseInt(fields[1], 10, 64)
+				if err != nil {
+					continue
+				}
+
+				switch {
+				case strings.HasPrefix(line, "MemFree:"):
+					memFree = kb * 1024
+				case strings.HasPrefix(line, "Buffers:"):
+					buffers = kb * 1024
+				case strings.HasPrefix(line, "Cached:"):
+					cached = kb * 1024
+				}
+			}
+		}
+
+		memAvailable = memFree + buffers + cached
+	}
+
+	// If still 0 or negative, use default
+	if memAvailable <= 0 {
+		fmt.Println("Failed to find available memory, using 8GB memory")
+		return 8 * 1024 * 1024 * 1024 // 8GB default
+	}
+
+	if config.full {
+		fmt.Println("Found available memory:", memAvailable)
+	}
+	return memAvailable
+}
+
+func getDarwinMemory() int64 {
+	// Use vm_stat command to get memory information on macOS
+	cmd := exec.Command("vm_stat")
+	output, err := cmd.Output()
+	if err != nil {
+		fmt.Println("Error running vm_stat:", err)
+		return 8 * 1024 * 1024 * 1024 // 8GB default
+	}
+
+	lines := strings.Split(string(output), "\n")
+	var pageSize, freePages, inactivePages int64
+
+	// Get page size first
+	for _, line := range lines {
+		if strings.Contains(line, "page size of") {
+			fields := strings.Fields(line)
+			for i, field := range fields {
+				if field == "of" && i+1 < len(fields) {
+					size, err := strconv.ParseInt(fields[i+1], 10, 64)
+					if err == nil {
+						pageSize = size
+						break
+					}
+				}
+			}
+		}
+	}
+
+	// Default page size if not found
+	if pageSize == 0 {
+		pageSize = 4096 // 4KB default page size
+	}
+
+	// Parse memory statistics
+	for _, line := range lines {
+		fields := strings.Fields(line)
+		if len(fields) >= 2 {
+			valueStr := strings.TrimSuffix(fields[len(fields)-1], ".")
+			value, err := strconv.ParseInt(valueStr, 10, 64)
+			if err != nil {
+				continue
+			}
+
+			if strings.HasPrefix(line, "Pages free:") {
+				freePages = value
+			} else if strings.HasPrefix(line, "Pages inactive:") {
+				inactivePages = value
+			}
+		}
+	}
+
+	// Calculate available memory (free + inactive pages)
+	availableMemory := (freePages + inactivePages) * pageSize
+
+	// If calculation failed, use default
+	if availableMemory <= 0 {
+		fmt.Println("Failed to find available memory, using 8GB memory")
+		return 8 * 1024 * 1024 * 1024 // 8GB default
+	}
+
+	if config.full {
+		fmt.Println("Found available memory:", availableMemory)
+	}
+	return availableMemory
 }
 
 func filesystemBenchmark(memoryChunks [][]byte, stopChan <-chan struct{}, config Config) {
