@@ -24,6 +24,7 @@ type Config struct {
 	full           bool
 	disableCPU     bool
 	disableDisk    bool
+	diskPath       string
 }
 
 type CPUStats struct {
@@ -61,6 +62,7 @@ func main() {
 	flag.BoolVar(&config.full, "full", false, "Show full output with detailed information")
 	flag.BoolVar(&config.disableCPU, "disable-cpu", false, "Disable CPU testing")
 	flag.BoolVar(&config.disableDisk, "disable-disk", false, "Disable disk testing")
+	flag.StringVar(&config.diskPath, "disk-path", os.TempDir(), "Path for disk benchmark files")
 	flag.Parse()
 
 	// Validate parameters
@@ -389,7 +391,7 @@ func getDarwinMemory(config Config) int64 {
 
 func filesystemBenchmark(memoryChunks [][]byte, stopChan <-chan struct{}, config Config) {
 	if config.full {
-		fmt.Println("Disk: Starting filesystem benchmark")
+		fmt.Printf("Disk: Starting filesystem benchmark in path: %s\n", config.diskPath)
 	}
 
 	if len(memoryChunks) == 0 {
@@ -398,7 +400,7 @@ func filesystemBenchmark(memoryChunks [][]byte, stopChan <-chan struct{}, config
 	}
 
 	// Create temporary file for benchmarking
-	tempFile, err := os.CreateTemp(".", "perf_test_*.tmp")
+	tempFile, err := os.CreateTemp(config.diskPath, "perf_test_*.tmp")
 	if err != nil {
 		fmt.Printf("Disk: Error creating temp file: %v\n", err)
 		return
