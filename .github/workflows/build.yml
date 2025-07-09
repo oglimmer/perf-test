@@ -59,7 +59,7 @@ jobs:
         mkdir -p dist
         BINARY_NAME="perf-test-$GOOS-$GOARCH"
         go build -trimpath -ldflags="-s -w" -o "dist/$BINARY_NAME" main.go
-        if command -v upx >/dev/null; then
+        if command -v upx >/dev/null && [[ "$(uname)" != "Darwin" ]]; then
           upx --best "dist/${BINARY_NAME}"
         fi
     
