@@ -58,7 +58,10 @@ jobs:
       run: |
         mkdir -p dist
         BINARY_NAME="perf-test-$GOOS-$GOARCH"
-        go build -ldflags="-s -w" -o "dist/$BINARY_NAME" main.go
+        go build -trimpath -ldflags="-s -w" -o "dist/$BINARY_NAME" main.go
+        if command -v upx >/dev/null; then
+          upx --best "dist/${BINARY_NAME}"
+        fi
     
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
