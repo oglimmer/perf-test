@@ -1,6 +1,6 @@
 # Performance Test Tool
 
-A comprehensive system performance benchmarking tool written in Go that tests CPU, memory, and disk I/O performance.
+A comprehensive system performance benchmarking tool written in Go that tests CPU and disk I/O performance.
 
 ## Features
 
@@ -11,7 +11,7 @@ A comprehensive system performance benchmarking tool written in Go that tests CP
 
 ### Pre-built Binaries
 
-Download the latest release for your platform from the [releases page](https://github.com/your-username/perf-test/releases).
+Download the latest release for your platform from the [releases page](https://github.com/oglimmer/perf-test/releases).
 
 ### Build from Source
 
