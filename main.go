@@ -62,7 +62,7 @@ func main() {
 	flag.BoolVar(&config.full, "full", false, "Show full output with detailed information")
 	flag.BoolVar(&config.disableCPU, "disable-cpu", false, "Disable CPU testing")
 	flag.BoolVar(&config.disableDisk, "disable-disk", false, "Disable disk testing")
-	flag.StringVar(&config.diskPath, "disk-path", os.TempDir(), "Path for disk benchmark files")
+	flag.StringVar(&config.diskPath, "disk-path", "./", "Path for disk benchmark files")
 	flag.Parse()
 
 	// Validate parameters

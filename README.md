@@ -43,6 +43,7 @@ Run with default settings (quiet mode):
 | `-chunk-size` | 100 | Memory chunk size in MB |
 | `-report-interval` | 5 | Seconds between benchmark reports |
 | `-cpu-threads` | 0 | Number of CPU threads (0 = auto: cores-1) |
+| `-disk-path` | ./ | Path for disk benchmark files |
 | `-full` | false | Show full output with detailed information |
 | `-disable-cpu` | false | Disable CPU testing |
 | `-disable-disk` | false | Disable disk testing |
