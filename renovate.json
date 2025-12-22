@@ -1,37 +1,57 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    ":enableVulnerabilityAlerts",
+    ":dependencyDashboard",
+    ":semanticCommits"
   ],
-  "enabledManagers": ["gomod"],
-  "postUpdateOptions": [
-    "gomodTidy",
-    "gomodUpdateImportPaths"
-  ],
+  "timezone": "Europe/Berlin",
+  "prHourlyLimit": 10,
+  "prConcurrentLimit": 20,
+  "rebaseWhen": "behind-base-branch",
+  "rangeStrategy": "bump",
+  "automergeType": "branch",
   "packageRules": [
     {
-      "matchManagers": ["gomod"],
-      "matchDepTypes": ["require"],
-      "rangeStrategy": "bump"
+      "automerge": true,
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ]
     },
     {
-      "matchManagers": ["gomod"],
-      "matchDepTypes": ["require"],
-      "matchUpdateTypes": ["major"],
-      "dependencyDashboardApproval": true
+      "matchCurrentVersion": "/^0\\./",
+      "automerge": false
     },
     {
-      "matchPackageNames": ["go"],
-      "enabled": false
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "GitHub Actions"
+    },
+    {
+      "matchManagers": [
+        "gomod"
+      ],
+      "groupName": "Go dependencies"
     }
   ],
-  "vulnerabilityAlerts": {
-    "enabled": true
+  "ignoreTests": true,
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "at any time"
+    ],
+    "automerge": true
   },
-  "separateMinorPatch": true,
-  "separateMajorMinor": true,
-  "timezone": "UTC",
-  "schedule": ["before 6am on monday"],
-  "prConcurrentLimit": 5,
-  "prHourlyLimit": 2
+  "vulnerabilityAlerts": {
+    "labels": [
+      "security"
+    ],
+    "schedule": [
+      "at any time"
+    ],
+    "automerge": true
+  }
 }
